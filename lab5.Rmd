@@ -1,0 +1,58 @@
+---
+title: "lab5"
+author: "Ben Tankus"
+date: "4/28/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(arm)
+library(Sleuth3)
+library(tidyverse)
+library(vcdExtra)
+library(magrittr)
+```
+
+# Lab 5 Assignment 
+
+## Questions
+
+1. Fit a model to the gay marriage data that includes all two-way interactions. What do you conclude from this model? Be specific and try to address questions having to do with the association among the three variables.
+
+
+```{r}
+
+marriage <- expand.grid(
+  opinion = factor(c("Agree", "Neutral", "Disagree"), levels = c("Agree", "Neutral", "Disagree")),
+  relig = factor(c("Fundamentalist", "Moderate", "Liberal"), c("Liberal", "Moderate", "Fundamentalist")),
+  educ = factor(c("High school or less", "At least some college"), c("High school or less", "At least some college"))) 
+marriage$Freq <- c(  6,2,10,8,3,9,11,5,6,4,2,11,21,3,5,22,4,1)
+
+
+marriage_tab <- xtabs(data = marriage, Freq ~ educ + relig + opinion)
+
+
+
+mod_relig <- glm(data = marriage_tab, Freq ~ relig + educ + opinion + relig:educ + relig:opinion + educ:opinion, family = quasipoisson)
+
+summ <- summary(mod_relig)
+summ
+```
+
+## There is overdispersion present in the model with the dispersion parameter of 1.64. It also looks like the only significant value (excluding the intercept) is the interaction between religFundamentalist and opinionDisagree (pval 0.035). There also seems to be a fair amount of dependance in the model, as the pvalues change dirastically as terms are added and removed.
+
+2. Fit a model that includes all two-way and the three-way interactions. Is there anything problematic about this model? Please explain.
+
+```{r}
+
+
+mod_relig <- glm(data = marriage_tab, Freq ~ (relig + educ + opinion)^3, family = poisson)
+
+summary(mod_relig)
+
+```
+## This model does not provide any p-values, std. errors, or t-statistics when using quasipoisson method, and has an undefined dispersion parameter (0 residual degrees of freedom). I belive this is because we have over-fit the model.
+
+

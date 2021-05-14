@@ -1,0 +1,139 @@
+---
+title: "HW5"
+author: "Ben Tankus"
+date: "4/28/2021"
+output: pdf_document
+---
+
+```{r}
+library(arm)
+library(Sleuth3)
+library(tidyverse)
+library(vcdExtra)
+library(magrittr)
+```
+
+R Questions
+1. (2 points) Recall the obesity problem from Homework 1. The data are as follows:
+
+          CVD Death
+           Yes No
+Obese      16 2045
+Not obese  7 1044
+
+```{r}
+
+cvdDeath <- expand.grid(
+  obesity = factor(c('Obese', 'Not obese'), levels = c('Obese', 'Not obese')),
+  death = factor(c('Death', 'No Death'), levels = c('Death', 'No Death')))
+cvdDeath$Freq <- c( 16, 7, 2045, 1044)
+
+cvdDeath_tab <- xtabs(data = cvdDeath, Freq ~ obesity + death)
+
+head(cvdDeath_tab)
+
+
+```
+Using Poisson log linear regression, test for independence between obesity and CVD death outcome.
+(Hint: this is equivalent to testing that the interaction term in the model is zero.) How does your answer compare to a chi-square test on the same data?
+
+```{r}
+
+fit <- glm(Freq ~ obesity + death + obesity:death , data = cvdDeath_tab, family = poisson)
+summary(fit)
+
+anova(fit, test = 'Chisq')
+
+
+```
+## Using poisson log linear regression these two factors (obesity and death) are independent, with an interaction term pvalue of 0.7343 (95% level confidence interval). This is the same as the chi-sq test.
+
+
+2. (3 points) Although male elephants are capable of reproducing by 14 to 17 years of age, younger adult males are usually unsuccessful in competing with their larger elders for the attention of receptive females. Since male elephants continue to grow throughout their lifetimes, and since larger males tend to be more successful at mating, the males most likely to pass their genes to future generations are those whose characteristics enable them to live long lives. Joyce Poole studied a population of African elephants in Amboseli National Park, Kenya, for 8 years. You can explore this data set in case2201 in the Sleuth3 library. This data frame contains the number of successful matings and ages (at the study’s beginning) of 41 male elephants.
+
+Give an estimated model for describing the number of successful matings as a function age, using
+
+```{r}
+df <- case2201
+
+df['sqrtMatings'] <- sqrt(df$Matings)
+fit.a <- lm(sqrtMatings ~ Age, data = df)
+summ.a <- summary(fit.a)
+print(summ.a)
+plot(summ.a$residuals)
+
+df['MatingsLog'] <- log(df$Matings + 1)
+fit.b <- lm(MatingsLog ~ Age, data = df)
+summ.b <- summary(fit.b)
+print(summ.b)
+plot(summ.b$residuals)
+
+
+fit.c <- glm.nb(Matings ~ Age, data = df)
+summ.c <- summary(fit.c)
+print(summ.c)
+plot(summ.c$deviance.resid)
+
+LRstats(fit.a,fit.b,fit.c)
+
+```
+
+(a) simple linear regression after taking a square root transformation of the number of successful matings;
+
+(b) simple linear regression after taking a logarithmic transformation (after adding 1);
+
+(c) log-linear regression.
+
+Be sure to examine residuals from each of these models. How do the models compare? Please be specific. Is there evidence of over dispersion? If so, fit another model and report results from that model. If not, why not?
+
+## The AIC and BIC values for the b model are best. The residual plot is also closest to zero in b, with a scale only extending to 0.5 as opposed to 2 in both A and C.
+
+
+Conceptual Questions
+
+3. (2 points) What is the difference between a log-linear model and a linear model after the log transformation of the response?
+
+## The difference is where we take the response average. a linear model takes the average of logged responses, where a log-linear model conducts the analysis, *then* transforms the mean to log-scale.
+
+
+
+4. (3 points) This question refers to the elephant mating data from question 2 above.
+
+
+(a) Both the binomial and the Poisson distributions provide probability models for random counts. Which distribution is appropriate to model the number of successful mating is male African elephants and why?
+
+
+## We should be using the poisson distribution because the probability of success is not the same for every trail (elephant mating). Older elephants have a better chance of mating, therefore, we should use a poisson to model age / mating.
+
+## According to the AIC and BIC values, SLR log transform model (b) is more appropriate to model the elephant mating pattern because the significantly smaller AIC and BIC values (67.26, 72.4) (b),  (84.9, 90.0) (a), and (157.9, 44.5) (c) respectively, and the residual plot is closer to zero.
+
+(b) In the following plot, we see that the spread of responses is larger for larger values of the mean response. Is this something to be concerned about if we perform a Poisson log-linear regression?
+
+## If the residual plot resembled this, with non-constant variance, I would be concerned. However since this is a direct measurement of the response, this variance should be handled within the log-linear transformation.
+
+
+PLOT IN HW PDF
+
+(c) Performing a Poisson log-linear regression results in the following output:
+
+               Estimate    Std. Error z value  Pr(> |z|)
+(Intercept)   -1.58201      0.54462    -2.905   0.00368 **
+Age           0.06869       0.01375    4.997    5.81e-07 ***
+Residual Deviance: 51.01 on 39 degrees of freedom
+
+What are the mean and variance of the distribution of counts of successful matings (in 8 years) for elephants who are aged 25 years at the beginning of the observation period? What are the mean and variance for elephants who are aged 45 years?
+
+```{r}
+
+print(exp(-1.58 + 0.068*25))
+
+
+
+print(exp(-1.58 + 0.068*45))
+
+51.01/39
+
+
+```
+
+

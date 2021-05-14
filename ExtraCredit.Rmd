@@ -1,0 +1,105 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+On January 28, 1986, a routine launch was anticipated for the Challenger space shuttle. Seventy-three
+seconds into the flight, disaster happened: the shuttle broke apart, killing all seven crew members on
+board. An investigation into the cause of the disaster focused on a critical seal called an O-ring, and
+it is believed that damage to O-rings during shuttle launches may have been related to the ambient
+temperature at the time of the launch. Using data from 24 shuttle missions, we fit a simple logistic
+regression model. Here, Temperature is the temperature in Fahrenheit at launch time and the response
+variable, Failure, is an indicator of O-rings failures (Failure = 1 if there was at least O-ring that failed.
+Here is a summary of the logistic regression model fit to these data:
+
+
+            Estimate Std. Error z value Pr(> |z|)
+(Intercept)   10.88     5.70     1.91     0.06
+Temperature   -0.17     0.08    -2.05     0.04
+
+
+1. Find a 90% confidence interval and a 95% confidence interval for the coefficient on Temperature. Which one of the intervals is wider? Can you provide some intuition on why?
+
+```{r}
+
+estimate <- -0.17
+zval_90 <- qnorm(0.95) # 90% two-tailed confidence interval
+zval_95 <- qnorm(0.975)
+stdError <- 0.08
+
+confLower_90 <- estimate - zval_90*0.08
+confUpper_90 <- estimate + zval_90*0.08
+
+confLower_95 <- estimate - zval_95*0.08
+confUpper_95 <- estimate + zval_95*0.08
+
+print(paste('90%:', confLower_90, confUpper_90))
+
+print(paste('95%:', confLower_95, confUpper_95))
+
+```
+
+## The 95% confidence interval is wider because we are casting a larger statistical net. We are saying "We are 95% confident the paramenter of interest is in this range" VS 90% confident. As we become more confident, we increase the range.
+
+
+2. In the context of the problem, interpret the 90% confidence interval you found in question 1, on the
+log-odds scale.
+
+
+```{r}
+
+logodds_lower <- exp(confLower_90)
+logodds_Upper <- exp(confUpper_90)
+print(paste('log odds',logodds_lower,logodds_Upper ))
+
+```
+## Here we would still reject the null hypothesis that the estimate of temperature is different than zero.
+
+3. Find a 90% confidence interval for the effect of a one-degree increase in temperature on the odds of O-ring failure and interpret your result.
+
+```{r}
+
+#Exp of the estimate value to find the odds odds
+change <- exp(-0.17)
+
+conflower_90 <- change - zval_90*0.08
+confupper_90 <- change + zval_90*0.08
+
+print(paste('90%:', conflower_90, confupper_90))
+
+```
+## We are 90% confident that the effect of a one-degree increase of temperature on the odds of o-ring failure will be between 71.2% and 97.5%
+
+
+4. Find the probability of O-ring failure when the ambient temperature is 52◦F and when the ambient
+temperature is 72◦F. Which temperature seems more favorable for a successful launch?
+
+
+```{r}
+
+probFail_52 = exp(10.88 -0.17*52)
+
+probFail_72 = exp(10.88 -0.17*72)
+
+print(paste('failure probability for 52 and 72 degrees F:', probFail_52, probFail_72))
+
+```
+## The probability of failure at 52 degrees F is over 1, therefore is much less favorable than the 26% of 72 degrees F.
+
+5. Can you find the coldest temperature so that the probability of O-ring failure is less than 10%?
+
+
+
+```{r}
+for (i in 60:100){
+  
+  val = exp(10.88 -0.17*i)
+  print(paste('Temp, Percent:', i, round(val,3)))
+}
+#print(paste('failure probability for 52 and 72 degrees F:', probFail_52, probFail_72))
+
+```
+
+## The first temperature with less than 10% failure rate is 78 degrees F

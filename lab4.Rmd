@@ -1,0 +1,132 @@
+---
+title: "Lab4"
+author: "Ben Tankus"
+date: "4/22/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('ggplot2')
+
+library(dplyr)
+library(vcdExtra)
+library(tidyverse)
+```
+
+# Lab 4 Assignment
+
+## Question
+
+Here we will return to the UCBAdmissions dataset and fit a logistic regression model for the count of students admitted (out of the total applicants) for each combination of the factors gender and department.  The usual drill applies -- submit your answers as an RMarkdown document, following the instructions given in the previous labs.
+
+(a) Construct an informative ggplot() of the empirical logits of admission proportion vs gender and department.  It's up to you what aesthetics to map to which variables -- there is more than one right answer here.  
+
+Some tips for part (a):
+
+- You can use the `group` argument to geom_line() to connect points within a group -- for instance, given a plot with Gender on the x axis and a variable called `eLogits` on the y, you could add `geom_line(aes(group = Dept, x = Gender, y = eLogits))`, where the slope of the connecting lines would correspond to the sign and magnitude of the difference in empirical logits (log of observed odds ratio) between genders within each department.  
+
+- You can also incorporate information about the total number of applicants to each department into your plot.  For instance, supposing you had a data frame with separate columns containing counts of "Admitted" and "Rejected" by sex and department, you could map the number of applicants to the size of the plot points using `geom_point(size = Admitted + Rejected)`. 
+
+```{r}
+
+
+#to_cases
+UCBAdmissions_case <- expand.dft(UCBAdmissions)
+head(UCBAdmissions_case)
+
+UCBAdmissions_case %>% count(Gender)
+Admissions_by_gender <- UCBAdmissions_case %>%
+  group_by(Admit, Dept, Gender) %>%
+  summarize(counts =  n())
+
+Admissions_test <- pivot_wider(Admissions_by_gender, names_from = Admit, values_from = counts) 
+
+Admissions_test$admit_pct <- (Admissions_test$Admitted / (Admissions_test$Admitted + Admissions_test$Rejected))
+
+
+ggplot(data=Admissions_test, aes(x=Dept, y=admit_pct, color=Gender)) + geom_point() + geom_point(aes(group=Gender))
+
+```
+
+(b) Based on your plot from (a), which variable (gender or department) appears to account for more of the variability in admissions?  Explain.
+
+
+
+## According to the plot it looks like for a large part, gender tracks very closely to admission. Admission percentage however changes greatly based on department. 
+
+
+
+
+(c) Fit an appropriate (binomial) logistic regression model for admissions.  What is the estimated dispersion parameter?  Is there evidence of lack of fit? 
+
+## This model is fit fairly well using a binomial model as the dispersion parameter is very close to 1. It also converged in a small number of iterations, suggesting a good fit.
+
+
+```{r}
+
+
+UCBA_case <- expand.dft(UCBAdmissions)
+
+test1 <- glm(data = UCBA_case, Admit ~ .  , family = binomial)
+test.fit <- summary(test1)
+test.fit
+
+```
+
+
+
+(d) Construct a plot of residuals vs fitted values (try just `plot`-ing your fitted model object).  From this plot, can you identify a source for any fit problems encountered in part (c)?
+
+
+```{r}
+
+plot(test1)
+
+```
+## The residuals vs fitted values looks like a straightforward plot with minimal sources of fit issues.
+
+
+(d) Refit the binomial model above, but excluding the data from department A.  Now what is the estimated dispersion parameter?  Based onthe p-value, what would you conclude about the effect of Gender on admissions (to departments other than A) using this model?     
+
+
+```{r}
+
+
+test1 <- glm(data = UCBA_case, Admit ~ .  , family = binomial, subset = Dept != 'A')
+
+summary(test1)
+
+
+
+```
+## When deptartment A is removed the p-value for department B changes dirastically. This likely means admittance rates for A and B are dependant.
+
+
+
+(e) The approach in part (d) allowed us to keep the binomial likelihood model, but only by performing an unprincipled exclusion of some apparently-legitimate data that happened to be "outlying".  
+
+To avoid this, we'll refit the model for all departments with the quasibinomial family.  
+
+Using the quasibinomial model for all departments, what do you conclude about the effect of Gender on admissions?  Support your conclusion by constructing and interpreting a 95% confidence interval for 
+
+$P_{diff} = [P(Admit | (Department, Male)) - P(Admit | (Department, Female))]$ 
+
+That is, construct an interval on the model scale, then backtransform to the data scale.  Be careful with the direction (male higher or female higher) of the observed difference in conditional probability of admission.  
+
+## Gender does not have a statistically significant effect on admission (p-value 0.22). as seen by the summary below. 
+
+```{r}
+
+test1 <- glm(data = UCBA_case, Admit ~ .   , family = quasibinomial)
+
+summary(test1)
+
+
+
+```
+
+
+

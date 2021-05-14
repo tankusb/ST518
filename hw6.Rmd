@@ -1,0 +1,110 @@
+---
+title: "hw6"
+author: "Ben Tankus"
+date: "5/6/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(arm)
+library(Sleuth3)
+library(tidyverse)
+library(vcdExtra)
+library(magrittr)
+library(MASS)
+library(pscl)
+
+```
+
+# R Question
+1. (5 points) Consider data on 4406 individuals, aged 66 and over, who are covered by Medicare, a
+public insurance program, in the file DT.rda. The objective is to model the number of physician/nonphysician office and hospital outpatient visits using available covariate information for the patients.
+
+```{r}
+load(file = 'DT.rda')
+head(dt)
+
+```
+
+
+The covariates include health status variables hosp (number of hospital stays), health (self-perceived
+health status), numchron (number of chronic conditions), as well as socioeconomic variables gender,
+school (number of years of education), and privins (private insurance indicator). Once you
+download the DR.rda file, you can load it into R using load("DT.rda").
+
+(a) Produce a histogram of the dependent variable. What types of statistical models (.e.g, Poisson regression, hurdle Poisson model, etc.) should you consider for these data? Give a brief
+justification for your answer.
+
+
+```{r}
+hist(dt$ofp)
+
+```
+
+## This very much looks like a zero inflated negative binomial distribution I would *consider* using both a hurdle model and a zero-inflated negative binomial model, but suspect the latter will provide a more accurate fit. 
+
+
+(b) Fit the models you indicated in part (a), using the identical set of explanatory variables in each,
+and report the AIC for each.
+
+
+```{r}
+
+hurdle.mod <- hurdle(ofp ~ ., data = dt, dist = 'negbin')
+zip.mod <- zeroinfl(ofp ~ ., data = dt, dist = 'negbin')
+bin.nb <- glm.nb(ofp ~ ., data = dt)
+
+
+LRstats(hurdle.mod, zip.mod, bin.nb)
+
+summary(zip.mod)
+
+```
+## The AIC for hurdle is 24210, and for zip is 24215. I would consider this difference insignificant. Just to compare to a non- ZIP model I also ran a negative binomial fit, which profided an AIC of 24359, some 140 units higher (worse).
+
+
+(c) Based on parts (a) and (b) and considering interpretation of the models in the context of
+the data, write a sentence summarizing your findings in terms of which model seems most
+appropriate for these data.
+
+## I think the zero-inflation model is most appropreate to fit these data, considering the study. The ZIP accounts for zeros in a more robust fashion when compared to the hurdle model, and this distribution has many zeros. 
+
+
+# Conceptual Question
+
+
+2. (5 points) For each of the following response variables, indicate whether a zero-inflated model or
+a hurdle model would be more appropriate. Justify your answer by providing possible processes
+responsible for generating the excess zeros and the counts that correspond to the model. There may
+not be a clear answer for you, so simply pick one and try to justify it.
+
+
+(a) School administrators study the attendance behavior of high school juniors and take the number
+of days absent as the response variable.
+
+## ZERO INFLATED: Similar to the example in the lab, this is likely to have zero-inflated data from when someone forces the juniors to go to school. Therefore a zero inflated model should be used.
+
+
+
+(b) Wildlife biologists want to model how many fish are being caught by fishermen at a state park.
+All park visitors are asked how many fish they caught.
+
+
+## ZERO INFLATED: Because not all visitors fish, there will be many true zeros in the model, therefore we should use a hurdle analysis method.
+
+
+(c) Researchers are interested in creating a stock trading model for investors. The response is trades
+per week made by each investor.
+
+
+## ZERO INFLATED: It is unlikely that an investor would go an entire week without investing, so I recommend a zero inflated model for this one.
+
+
+(d) Researchers want to create a model for loan defaults. They take the number of outstanding
+payments that exist for each of a random sample of loans
+
+## ZERO INFLATED: The researchers are taking a random sample of loans. ASSUMING the loans are *not* paid off in full, I recommend using a zero inflated model because most loans will have at least one payment remaining.
+

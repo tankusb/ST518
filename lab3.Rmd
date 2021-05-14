@@ -1,0 +1,114 @@
+---
+title: "Lab3"
+author: "Ben Tankus"
+date: "4/16/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+## Questions
+
+The data set `ResumeNames` in the *AER* package contains information about 4870 fictitious resumes, sent to real employers as part of an experiment about racial discrimination in hiring.  The binary response for each resume is whether the employer called back.  Although the original research question was about racial discrimination, there are many kinds of questions you might answer using these data. 
+
+
+
+Consider: 
+- Restricting your analysis to an interesting subset of the data
+- Transforming and combining input variables
+- Exploring interactions
+
+Some example questions (which you may use or modify if you want)
+
+- (How) does the relationship between callback probability and resume quality differ by applicant race?  
+
+- How many additional years of experience is having a white name vs a black name "worth" in terms of callback probability?
+
+- Does callback probability differ between applicants who meet stated job requirements and applicants who don't?  For instance, you might compare applicants who do or not meet the stated minimum number of years of experience, or applicants who do or do not list computer skills when applying to jobs for which computer skills are ostensibly required.
+
+- Does callback probability differ between male and female applicants by industry or position?
+
+Be creative!
+
+3. Use a logisitic regression model to address the question you posed in 2. Be sure to examine the fit of your model, and write a few sentences about your interpretation of the  model as it addresses the question you posed.
+
+
+
+1. Install and load the *AER* package, and read the help file for the `ResumeNames` data.  
+```{r}
+#install.packages('AER')
+library('AER')
+#?ResumeNames
+library(vcdExtra)
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+logistic <- function(x){exp(x)/(1 + exp(x))}
+```
+
+
+2. Come up with a question about the probability of `callback` (the binary response) that can be answered using at least one (but no more than 5) of the 26 available predictor variables.
+
+
+## Question: Does ethnicity play a factor in callback?
+
+3. Use a logisitic regression model to address the question you posed in 2. Be sure to examine the fit of your model, and write a few sentences about your interpretation of the  model as it addresses the question you posed.
+
+```{r}
+data('ResumeNames')
+summary(ResumeNames)
+
+
+# Viz
+plot(ResumeNames$ethnicity, ResumeNames$call)
+
+glm2 <- glm(call ~ ethnicity, family = binomial(link = "logit"), data = ResumeNames)
+
+
+summ <- summary(glm2)
+
+
+summ$deviance
+
+```
+## Answer: Ethnicity does play a factor in callbacks. Black applicants were less likely to get a call back at a 4.45e-05 level of significance on a 95% confidence level. This model doesn't seem to fit well, as the visual does not have a valid fit line.
+
+
+```{r}
+# Obtain 95% pointwise confidence bands from predict.glm()
+glm_pred <- predict.glm(glm2, type="link", se.fit=TRUE)
+low <- glm_pred$fit - 1.96 * glm_pred$se.fit
+upp <- glm_pred$fit + 1.96 * glm_pred$se.fit
+
+# back-transform everything to the data scale
+glm_fit <- logistic(glm_pred$fit)
+glm_lower <- logistic(low)
+glm_upper <- logistic(upp)
+
+# augment the Donner data frame
+aug_resume <- as.data.frame(cbind(ResumeNames, glm_fit, glm_lower, glm_upper))
+
+# Big plot
+ggplot(data = aug_resume) + 
+  # plot jittered data
+  geom_jitter(aes(x = ethnicity, 
+                 y = call),
+                 height = 0.05, width = 0.2) + 
+  
+  # plot fitted lines
+  geom_line(aes(x = ethnicity, 
+                y = glm_fit)) + 
+
+# plot 95% pointwise confidence bands
+  geom_ribbon(aes(x = ethnicity, 
+                  ymin = glm_lower, 
+                  ymax = glm_upper),
+              alpha = 0.2) +
+  
+  # plot reference lines at 0 and 1 (minimum and maximum possible probabilities)
+  
+  geom_hline(yintercept = 0, lty = 2, alpha = 0.4) +
+  geom_hline(yintercept = 1, lty = 2, alpha = 0.4) +
+  ggtitle("Generalized linear model for Donner Party")
+```
+
+## It seems this model does not fit very well as there is no line here. It may fit better with numerical values.

@@ -1,0 +1,68 @@
+---
+title: "Lab1"
+author: "Ben Tankus"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+library('vcdExtra')
+library('Sleuth3')
+library("gnm")
+library(tidyverse)
+```
+```
+Also, save the notebook as something like "Lab_Assignment_1" using "File" --> "Save As..." 
+
+The R Notebook template in your new file contains some description of the R Notebook format, with a couple of code chunk examples, which you can delete. 
+
+In your new .Rmd script, answer the questions in the "Questions" section below. Include all the code you need to produce the requested outputs.  Your script should include a top-level section heading for each question, for example:
+
+```
+# Question 1
+
+### Q1. 
+Starting from the `case1902` data file in the *Sleuth3* package, produce a flat table With Aggravation level as the rows, with Death/NoDeath as the two wide columns that contain Black/White within them. That is, the skeleton of your table should look like (you should look at this in Preview):
+
+.|Death |  	|NoDeath|
+-|-------|------|--------|--
+.|Black | White | Black | White
+1|.|.|.|.
+2|.|.|.|.
+3|.|.|.|.
+4|.|.|.|.
+5|.|.|.|.
+6|.|.|.|.
+
+```{r}
+penalty <- case1902
+penalty_freq <- gather(data = penalty, key = Sentence, value = Freq, c("Death", "NoDeath"), factor_key = TRUE)
+
+
+penalty_tab <- xtabs(Freq~ Sentence + Victim + Aggravation, penalty_freq)
+#penalty_freq
+
+
+table <- penalty_tab %>% aperm(c(1, 2, 3)) %>% structable(direction = c("v", "v", "h"))
+
+table
+
+```
+
+
+# Question 2
+
+  
+### Q2. 
+Create a mosaic plot of the flat table you produced in question 1. Are there problems with your plot? Is it easy to understand?  You are welcome to play around with making it more interpretable and/or visually appealing, but that's optional for this assignment. 
+
+```{r}
+
+
+mosaic(table)
+
+
+```
+
+
+## This visual was created without error, but it's nowhere near as clear as the flat table plot in the lab. The aggrivation on the Y axis puts a weird limit on the boxes that doesn't really hold consistent throughout the visual. I reccomend using the flat table plot.

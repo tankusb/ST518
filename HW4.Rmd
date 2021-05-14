@@ -1,0 +1,115 @@
+---
+title: "HW4"
+author: "Ben Tankus"
+date: "4/24/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('ggplot2')
+library('Sleuth3')
+library(dplyr)
+library(vcdExtra)
+library(tidyverse)
+```
+
+
+R Question
+
+1. (5 points) In 1968, Dr. Benjamin Spock was tried in Boston on charges of conspiring to violate the Selective Service Act by encouraging young men to resist the draft for military service in Vietnam. The defense in the case challenged the method of jury selection claiming that women were underrepresented on jury panels by the process. The defense argued specifically that the judge in the Spock trial had a history of venires (panels of potential jurors) in which women were systematically underrepresented compared to the venires of six other Boston area district judges. These data can
+be found in case0502 in the Sleuth3 library.
+
+Analyze the data by treating the number of women out of 30 people on a venire as a binomial response (that is, you’ll change the percent women in the datasheet to a count by multiplying by 30
+and rounding) and judge as an explanatory variable .
+
+
+```{r}
+df <- case0502
+
+df['Women'] <- round(df$Percent*30/100)
+
+
+mod1 <- glm(cbind(Women, 30 - Women) ~ (Judge), data = df, family = binomial(link = "logit")) 
+ 
+summary(mod1)
+```
+
+
+(a) Is there evidence of over dispersion in these data? Please explain (i.e., don’t just answer “yes”
+or “no”).
+
+## The dispersion parameter using quasibinomial fit is 0.784 which provides evidence of *under*-dispersion, but no *over*-dispersion.
+
+
+(b) Do the odds of a female on a venire differ for the different judges? Please explain.
+
+## There is a clear difference in Spock's contribution to the number of women in the venire model. Spock's judge has the only significant p-vale at 7.88e-06, where the next closes is judge E at 0.12.
+
+
+(c) Do judges A-F differ in their probabilities of selecting females to the venire? Please explain.
+
+
+```{r}
+
+mod3 <- glm(cbind(Women, 30 - Women) ~ Judge, subset = (Judge !="Spock's"), data = df, family = binomial(link = "logit"))
+ 
+summary(mod3)
+```
+
+## There is no significant difference between the remaining judges. Because the P-values remaining are all above 0.05 at a 95% confidence level.
+
+
+
+(d) How different are the odds of having a woman on the Spock judge’s venires from the odds of
+having a woman on the venires of other judges? Please explain.
+(Hint: In parts (b) through (d), think about what models you could compare using drop-in-deviance
+tests.)
+
+
+```{r}
+
+mod4 <- glm(cbind(Women, 30 - Women) ~ factor(Judge), data = df, family = binomial(link = "logit")) 
+
+
+
+mod5 <- glm(cbind(Women, 30 - Women) ~ (Judge!="Spock's"), data = df, family = binomial(link = "logit"))
+
+
+
+anova(mod4, mod5,test="Chisq")
+LRstats(mod4, mod5)
+
+
+plot(mod5)
+
+```
+## No significant difference between these too models. That means that the remaining judges are not significantly different in the proportion of women venirs they select. 
+
+
+Conceptual Questions
+
+2. (2 points) Give three explanations for why you may see evidence of extra-binomial variation in a
+logistic regression.(M4L4)
+
+1. Possible dependence among binary random variables; unaccounted for explanatory information. 
+2. Poor deviance goodness-of-fit after fitting a rich model
+3. Outliers in the data
+
+
+3. (2 points) In lecture, we saw that when we fit a logistic model when extra binomial variation is
+present, we get standard errors that are ’too small’. Explain why this gives misleading results.
+
+## When the standard errors are 'too small' this gives p-values that are 'too small' as well (mathematical computation of a p-value). This could contribute to incorrectly rejecting a true null hypothesis (type I error).
+
+
+4. (1 point) Consider an experiment that studies the number of insects that survive a certain dose
+of an insecticide, using several batches of insects of size n each. The insects may be sensitive to
+factors that vary among batches during the experiment but these factors (such as temperature)
+were unmeasured. Explain why the distribution of the number of insects per batch surviving the
+experiment might show over dispersion relative to a binomial(n, p) distribution.
+
+
+## There may be dependent data in this study as temperature was unmeasured. As temperature fluctuates over the course of a year, it's possible that batches studied in July may behave differently than batches studied in January, thus introducing dependent data. This dependence could introduce over-dispersion in the study.
+
+
